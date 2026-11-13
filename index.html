@@ -1,20 +1,20 @@
 <!doctype html>
-<html lang="ar" dir="rtl" data-theme="dark">
+<html lang="en" dir="ltr" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>جدول | Table Hub</title>
-    
+    <title>Table Hub | Multi-Table Management</title>
+
     <!-- Favicon & Icons -->
     <link rel="icon" href="images/logo.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="images/logo.png" />
     <meta name="theme-color" content="#dc2626" />
 
-    <!-- Google Fonts: Tajawal, Cairo, Exo 2 -->
+    <!-- Google Fonts: Inter, Cairo, Exo 2 -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Exo+2:wght@500;700&family=Tajawal:wght@400;500;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Exo+2:wght@500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
 
@@ -32,77 +32,111 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <!-- ── رأس الصفحة العلوي (Header) ── -->
+    <!-- ── Header ── -->
     <header class="app-header">
       <div class="header-container">
-        <!-- الشعار والعنوان -->
+        <!-- Hamza Gamal Portfolio Link -->
+        <a
+          href="https://hamza-gamal.github.io/portfolio"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="link-portfolio"
+          aria-label="Hamza Gamal Portfolio"
+        >
+          <img src="images/HG.png" alt="Hamza Gamal" />
+        </a>
+
+        <!-- Brand / Logo -->
         <div class="brand-box">
           <div class="logo-wrapper">
             <img src="images/logo.svg" alt="Table Hub Logo" class="brand-logo" />
             <div class="logo-pulse"></div>
           </div>
           <div class="brand-text">
-            <h1 class="brand-title">جدول <span class="badge-title">Table Hub</span></h1>
-            <p class="brand-subtitle">نظام الجداول المتعددة والتحكم الشامل</p>
+            <h1 class="brand-title">
+              <span data-i18n="appTitle">Table Hub</span>
+              <span class="badge-title" data-i18n="appBadge">PRO</span>
+            </h1>
+            <p class="brand-subtitle" data-i18n="appSubtitle">
+              Multi-Table Management & Interactive Studio
+            </p>
           </div>
         </div>
 
-        <!-- أزرار الإعدادات والتحكم العامة -->
+        <!-- Global Header Actions -->
         <div class="header-actions">
-          <!-- محرك بحث سريع في كل الجداول -->
+          <!-- Global Search Input -->
           <div class="search-wrapper">
             <i class="fa-solid fa-magnifying-glass search-icon"></i>
             <input
               type="text"
               id="globalSearchInput"
               class="search-input"
-              placeholder="بحث في محتوى الجداول..."
+              data-i18n-placeholder="searchPlaceholder"
+              placeholder="Search across all tables..."
             />
+            <button id="clearSearchBtn" class="clear-search-btn" title="Clear search" style="display: none;">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
           </div>
 
-          <!-- زر تبديل طريقة العرض (جدول فردي مركز / شبكة كل الجداول) -->
-          <button id="viewToggleBtn" class="header-btn" title="تبديل طريقة العرض">
+          <!-- View Mode Toggle (Tabs vs Grid) -->
+          <button id="viewToggleBtn" class="header-btn" title="Toggle View Mode">
             <i class="fa-solid fa-table-cells-large"></i>
-            <span class="btn-text">عرض الكل</span>
+            <span class="btn-text" data-i18n="viewAll">All Tables</span>
           </button>
 
-          <!-- زر تصدير شامل لكل الجداول -->
-          <button id="exportAllBtn" class="header-btn" title="تصدير كافّة الجداول كملف JSON">
+          <!-- Export All Tables -->
+          <button id="exportAllBtn" class="header-btn" title="Export All Tables as JSON">
             <i class="fa-solid fa-cloud-arrow-down"></i>
-            <span class="btn-text">تصدير النسخ</span>
+            <span class="btn-text" data-i18n="exportAll">Export All</span>
           </button>
 
-          <!-- زر تبديل الثيم (أحمر وأسود / أحمر وأبيض) -->
-          <button id="themeToggleBtn" class="theme-toggle-btn" title="تبديل وضع الألوان">
+          <!-- Language Switcher (EN / AR) -->
+          <button id="langToggleBtn" class="header-btn lang-btn" title="Change Language / تغيير اللغة">
+            <i class="fa-solid fa-globe"></i>
+            <span class="btn-text" id="langBtnText">العربية</span>
+          </button>
+
+          <!-- Theme Toggle (Dark / Light) -->
+          <button id="themeToggleBtn" class="theme-toggle-btn" title="Toggle Theme">
             <div class="theme-icon-box">
               <i class="fa-solid fa-moon icon-dark"></i>
               <i class="fa-solid fa-sun icon-light"></i>
             </div>
-            <span class="theme-label">الدارك مود</span>
+            <span class="theme-label" data-i18n="themeLabel">Dark Mode</span>
           </button>
         </div>
       </div>
     </header>
 
-    <!-- ── شريط التنقل السريع بين نسخ الجداول (Tabs Bar) ── -->
+    <!-- ── Tables Navigation Bar (Tabs) ── -->
     <nav class="tables-nav-bar">
       <div class="tabs-scroll-container" id="tabsContainer">
-        <!-- سيتم توليد التابات بواسطة JavaScript (نسخة 1، نسخة 2، إلخ) -->
+        <!-- Rendered dynamically by script.js -->
       </div>
-      <div class="tabs-count-badge" id="tabsSummaryBadge">
-        <i class="fa-solid fa-layer-group"></i>
-        <span>5 نسخ نشطة</span>
+      
+      <div class="tabs-actions-right">
+        <button id="quickAddTabBtn" class="quick-add-tab-btn" title="Add New Table">
+          <i class="fa-solid fa-plus"></i>
+          <span data-i18n="addTableShort">+ Table</span>
+        </button>
+
+        <div class="tabs-count-badge" id="tabsSummaryBadge">
+          <i class="fa-solid fa-layer-group"></i>
+          <span id="activeCountText">1 Table Active</span>
+        </div>
       </div>
     </nav>
 
-    <!-- ── الحاوية الرئيسية للجداول (Main Content) ── -->
+    <!-- ── Main Workspace ── -->
     <main class="main-content">
-      <!-- شريط معلومات وتحكم الجدول النشط -->
+      <!-- Active Table Workspace -->
       <div class="table-workspace" id="tableWorkspace">
-        <!-- سيتم رسم كروت الجداول ديناميكياً هنا -->
+        <!-- Dynamic Table Cards Rendered Here -->
       </div>
 
-      <!-- ── لوحة التوسيع والتحكم في النسخ (More / Undo Control Bar) ── -->
+      <!-- ── Dynamic Scaling Deck (+1 / -1) ── -->
       <section class="scaling-deck">
         <div class="scaling-card">
           <div class="scaling-info">
@@ -110,54 +144,77 @@
               <i class="fa-solid fa-clone"></i>
             </div>
             <div class="scaling-text">
-              <h3 class="scaling-title">إدارة عدد نسخ الجدول</h3>
-              <p class="scaling-desc">
-                يمكنك زيادة عدد النسخ بمقدار 5 نسخ إضافية حتى 15، 20 أو أكثر، مع إمكانية التراجع بسهولة.
+              <h3 class="scaling-title" data-i18n="scalingTitle">Manage Table Copies</h3>
+              <p class="scaling-desc" data-i18n="scalingDesc">
+                Add or remove tables dynamically (+1 / -1). Scale up to 15, 20 or more copies with instant auto-save and full isolation.
               </p>
             </div>
           </div>
 
           <div class="scaling-controls">
-            <!-- زر التراجع (-5 نسخ) -->
-            <button id="undoBtn" class="scale-btn undo-btn" title="تقليص 5 نسخ والتراجع">
-              <i class="fa-solid fa-arrow-rotate-left"></i>
-              <span>تراجع (-5)</span>
-            </button>
-
-            <!-- عداد النسخ الحالية -->
-            <div class="copies-counter">
-              <span class="counter-label">النسخ الحالية:</span>
-              <span class="counter-number" id="copiesCounterNumber">5</span>
-              <span class="counter-unit">نسخ</span>
-            </div>
-
-            <!-- زر المزيد (+5 نسخ) -->
-            <button id="moreBtn" class="scale-btn more-btn" title="إضافة 5 نسخ جديدة">
+            <!-- Add 1 Table Button -->
+            <button id="addTableBtn" class="scale-btn scale-add-btn">
               <i class="fa-solid fa-plus"></i>
-              <span>المزيد (+5 نسخ)</span>
+              <span data-i18n="addOneTable">+1 Table</span>
             </button>
+
+            <!-- Remove 1 Table Button -->
+            <button id="removeTableBtn" class="scale-btn scale-remove-btn" title="Remove last table">
+              <i class="fa-solid fa-minus"></i>
+              <span data-i18n="removeOneTable">-1 Table</span>
+            </button>
+
+            <!-- Reset to 1 Table Button -->
+            <button id="resetTablesBtn" class="scale-btn scale-reset-btn" title="Reset to 1 Table">
+              <i class="fa-solid fa-arrow-rotate-left"></i>
+              <span data-i18n="resetTables">Reset (1 Table)</span>
+            </button>
+
+            <!-- Counter Badge -->
+            <div class="scale-counter-pill">
+              <span class="pill-label" data-i18n="totalCopies">Total Copies:</span>
+              <strong id="scaleCountNumber" class="pill-number">1</strong>
+            </div>
           </div>
         </div>
       </section>
     </main>
 
-    <!-- ── نافذة تأكيد / إشعارات سريعة (Toast Notification) ── -->
-    <div id="toast" class="toast-notification"></div>
+    <!-- ── Floating Toast Notifications ── -->
+    <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
-    <!-- ── الفوتر (Footer) ── -->
-    <footer class="app-footer">
-      <div class="footer-content">
-        <div class="footer-brand">
-          <img src="images/logo.svg" alt="Table Hub" class="footer-logo" />
-          <span>جدول | Table Hub</span>
+    <!-- ── Modal Confirmation Dialog ── -->
+    <div id="modalOverlay" class="modal-overlay" style="display: none;">
+      <div class="modal-card">
+        <div class="modal-header">
+          <i class="fa-solid fa-triangle-exclamation modal-warn-icon"></i>
+          <h3 id="modalTitle" class="modal-title">Confirm Action</h3>
         </div>
+        <p id="modalMessage" class="modal-message">Are you sure you want to proceed?</p>
+        <div class="modal-actions">
+          <button id="modalCancelBtn" class="modal-btn modal-btn-cancel">Cancel</button>
+          <button id="modalConfirmBtn" class="modal-btn modal-btn-confirm">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Footer ── -->
+    <footer class="app-footer">
+      <div class="footer-container">
         <p class="footer-copy">
-          تصميم متكامل باللون الأحمر الملكي الفاخر مع دعم الوضعين (الدارك واللايت) والتحكم المتقدم بالجداول
+          &copy; <span id="currentYear"></span> 
+          <a href="https://hamza-gamal.github.io/portfolio" target="_blank" rel="noopener noreferrer">Hamza Gamal</a> 
+          &bull; Table Hub Pro. All rights reserved.
         </p>
+        <div class="footer-tags">
+          <span class="footer-tag"><i class="fa-solid fa-bolt"></i> Auto-Save Active</span>
+          <span class="footer-tag"><i class="fa-solid fa-file-csv"></i> UTF-8 CSV Ready</span>
+          <span class="footer-tag"><i class="fa-solid fa-shield-halved"></i> 100% Local Storage</span>
+        </div>
       </div>
     </footer>
 
-    <!-- Script -->
+    <!-- Main JavaScript Application -->
     <script src="script.js"></script>
   </body>
 </html>

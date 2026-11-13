@@ -1,662 +1,995 @@
 /**
- * ═══════════════════════════════════════════════════════════════════
- * نظام الجداول المتعددة (Table Hub)
- * إدارة وتخصيص نسخ الجداول مع دعم الثيمين (أحمر/أسود وأحمر/أبيض)
- * وحفظ البيانات تلقائياً في localStorage
- * ═══════════════════════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════════════════
+ * TABLE HUB PRO - CORE APPLICATION SCRIPT
+ * Author: Hamza Gamal (https://hamza-gamal.github.io/portfolio)
+ * Features:
+ *   - Bilingual (English default, one-click toggle to Arabic RTL)
+ *   - Dark mode default with luxury Red & Black palette
+ *   - Dynamic table scaling (+1 / -1, default 1 table)
+ *   - Full table customization (width slider, row height, rows/cols)
+ *   - Excel-compatible CSV export (UTF-8 BOM for Arabic)
+ *   - Print / PDF support, instant search, and auto-save
+ * ═══════════════════════════════════════════════════════════════
  */
 
-// المفاتيح المستخدمة في التخزين المحلي (LocalStorage)
-const STORAGE_KEY = "table_hub_app_data_v1";
-const THEME_KEY = "table_hub_theme_mode";
-
-// الحالة العامة للتطبيق (Application State)
-let state = {
-  theme: "dark", // 'dark' (أحمر وأسود) | 'light' (أحمر وأبيض)
-  viewMode: "focused", // 'focused' (جدول واحد مركز) | 'grid' (عرض كل النسخ)
-  activeTableId: 1,
-  totalCopies: 5, // عدد النسخ الحالية (5، 10، 15، إلخ)
-  tables: [],
+// ── i18n Translation Dictionary ──
+const I18N = {
+  en: {
+    appTitle: "Table Hub",
+    appBadge: "PRO",
+    appSubtitle: "Multi-Table Management & Interactive Studio",
+    searchPlaceholder: "Search across all tables...",
+    viewAll: "All Tables",
+    viewFocused: "Single View",
+    exportAll: "Export All",
+    themeDark: "Dark Mode",
+    themeLight: "Light Mode",
+    langSwitch: "العربية",
+    addTableShort: "+ Table",
+    tableActiveSingle: "1 Table Active",
+    tableActivePlural: "{n} Tables Active",
+    scalingTitle: "Manage Table Copies",
+    scalingDesc: "Add or remove tables dynamically (+1 / -1). Scale up to 15, 20 or more copies with instant auto-save and full isolation.",
+    addOneTable: "+1 Table",
+    removeOneTable: "-1 Table",
+    resetTables: "Reset (1 Table)",
+    totalCopies: "Total Copies:",
+    tableDefaultTitle: "Table {n}: Data Set",
+    colDefault: "Column {n}",
+    widthLabel: "Width:",
+    spacingLabel: "Spacing:",
+    compact: "Compact",
+    normal: "Normal",
+    spacious: "Spacious",
+    addRow: "+ Row",
+    addCol: "+ Column",
+    duplicate: "Duplicate",
+    clear: "Clear Data",
+    exportCsv: "Export CSV",
+    print: "Print",
+    rowsCount: "{n} Rows",
+    colsCount: "{n} Columns",
+    cellsCount: "{n} Cells",
+    autoSaveToast: "Auto-saved",
+    tableAddedToast: "Table {n} created successfully",
+    tableRemovedToast: "Table {n} removed",
+    csvExportedToast: "Exported {name} to CSV",
+    allExportedToast: "All tables exported to JSON",
+    confirmClearTitle: "Clear Table Data",
+    confirmClearMsg: "Are you sure you want to clear all cell values in '{name}'?",
+    confirmResetTitle: "Reset All Tables",
+    confirmResetMsg: "Reset back to 1 table only? Additional copies will be removed.",
+    confirmDeleteColTitle: "Delete Column",
+    confirmDeleteColMsg: "Delete this column and its contents?",
+    confirmBtn: "Confirm",
+    cancelBtn: "Cancel",
+    noResults: "No matching cells found"
+  },
+  ar: {
+    appTitle: "جدول",
+    appBadge: "برو",
+    appSubtitle: "نظام الجداول المتعددة والتحكم الشامل",
+    searchPlaceholder: "بحث في محتوى الجداول...",
+    viewAll: "عرض الكل",
+    viewFocused: "عرض مركز",
+    exportAll: "تصدير النسخ",
+    themeDark: "الدارك مود",
+    themeLight: "اللايت مود",
+    langSwitch: "English",
+    addTableShort: "+ جدول",
+    tableActiveSingle: "1 جدول نشط",
+    tableActivePlural: "{n} جداول نشطة",
+    scalingTitle: "إدارة عدد نسخ الجدول",
+    scalingDesc: "يمكنك زيادة عدد النسخ بمقدار 1 نسخة إضافية حتى 15، 20 أو أكثر، مع إمكانية التراجع والتنقل بسهولة.",
+    addOneTable: "+1 جدول",
+    removeOneTable: "-1 جدول",
+    resetTables: "إعادة ضبط (جدول 1)",
+    totalCopies: "إجمالي النسخ:",
+    tableDefaultTitle: "نسخة {n}: جدول البيانات",
+    colDefault: "عمود {n}",
+    widthLabel: "العرض:",
+    spacingLabel: "المسافات:",
+    compact: "مضغوط",
+    normal: "متوسط",
+    spacious: "مريح",
+    addRow: "+ صف",
+    addCol: "+ عمود",
+    duplicate: "نسخ",
+    clear: "تفريغ",
+    exportCsv: "تصدير CSV",
+    print: "طباعة",
+    rowsCount: "{n} صفوف",
+    colsCount: "{n} أعمدة",
+    cellsCount: "{n} خلايا",
+    autoSaveToast: "تم الحفظ تلقائياً",
+    tableAddedToast: "تم إنشاء الجدول {n} بنجاح",
+    tableRemovedToast: "تم حذف الجدول {n}",
+    csvExportedToast: "تم تصدير {name} إلى ملف CSV",
+    allExportedToast: "تم تصدير كافة الجداول كملف JSON",
+    confirmClearTitle: "تفريغ بيانات الجدول",
+    confirmClearMsg: "هل أنت متأكد من تفريغ كافة خلايا '{name}'؟",
+    confirmResetTitle: "إعادة الضبط لجدول واحد",
+    confirmResetMsg: "هل تريد حذف النسخ الإضافية والعودة لجدول واحد فقط؟",
+    confirmDeleteColTitle: "حذف العمود",
+    confirmDeleteColMsg: "هل تريد حذف هذا العمود ومحتوياته؟",
+    confirmBtn: "تأكيد",
+    cancelBtn: "إلغاء",
+    noResults: "لم يتم العثور على نتائج مطابقة"
+  }
 };
 
-// قالب افتراضي لجدول جديد
-function createDefaultTable(id, indexNumber) {
+// ── Application State ──
+const AppState = {
+  // Defaults per user requirements: English default & Dark Mode default
+  lang: localStorage.getItem("table_hub_lang") || "en",
+  theme: localStorage.getItem("table_hub_theme") || "dark",
+  viewMode: "tabs", // 'tabs' or 'grid'
+  activeTableId: 1,
+  tables: [],
+  searchQuery: ""
+};
+
+// Default Sample Template for Table 1
+function createDefaultTableData(id, num) {
+  const isArabic = AppState.lang === "ar";
   return {
     id: id,
-    title: `نسخة ${indexNumber}: جدول البيانات`,
+    title: isArabic ? `نسخة ${num}: جدول البيانات` : `Table ${num}: Project Data`,
     widthPercent: 100,
-    cellHeight: 44,
-    headers: ["الاسم / البيان", "القسم / الفئة", "القيمة / العدد", "التاريخ", "الحالة / ملاحظات"],
-    rows: [
-      ["عنصر رقم 1", "مبيعات", "1,500", "2026-11-01", "مكتمل"],
-      ["عنصر رقم 2", "تسويق", "3,200", "2026-11-05", "قيد المراجعة"],
-      ["عنصر رقم 3", "تطوير", "4,800", "2026-11-10", "نشط"],
-      ["عنصر رقم 4", "خدمات", "950", "2026-11-12", "جاهز"],
-    ],
+    spacing: "normal", // 'compact', 'normal', 'spacious'
+    columns: isArabic
+      ? ["الاسم", "المهمة", "الحالة", "التقييم"]
+      : ["Item / Task", "Category", "Status", "Priority"],
+    rows: isArabic
+      ? [
+          ["تصميم واجهة المستخدم", "تطوير", "مكتمل", "عالي"],
+          ["ربط نظام اللغات", "برمجة", "قيد العمل", "عالي"],
+          ["إعداد الوضع المظلم", "تصميم", "مكتمل", "متوسط"],
+          ["تصدير ملفات Excel", "برمجة", "مكتمل", "عالي"],
+          ["مراجعة الأداء النهائي", "اختبار", "قادم", "عادي"]
+        ]
+      : [
+          ["Modern Red Theme", "UI Design", "Completed", "High"],
+          ["Bilingual System (EN/AR)", "Frontend", "Active", "Urgent"],
+          ["Table Dynamic Scaling", "Core Logic", "Ready", "High"],
+          ["CSV & Excel Export", "Feature", "Ready", "Medium"],
+          ["Hamza Gamal Portfolio Link", "Branding", "Integrated", "Normal"]
+        ]
   };
 }
 
-// ── تهيئة البيانات الأولية (Initialization) ──
-function initData() {
-  // استرجاع الثيم
-  const savedTheme = localStorage.getItem(THEME_KEY);
-  if (savedTheme === "light" || savedTheme === "dark") {
-    state.theme = savedTheme;
-  }
-  applyTheme(state.theme);
+// ── Initialization ──
+document.addEventListener("DOMContentLoaded", () => {
+  initYear();
+  loadStoredData();
+  applyLanguage(AppState.lang, false);
+  applyTheme(AppState.theme, false);
+  bindGlobalEvents();
+  renderApp();
+});
 
-  // استرجاع بيانات الجداول من LocalStorage
-  const savedData = localStorage.getItem(STORAGE_KEY);
-  if (savedData) {
+// Update Copyright Year
+function initYear() {
+  const yearEl = document.getElementById("currentYear");
+  if (yearEl) yearEl.textContent = new Date().getFullYear();
+}
+
+// Load Persisted Data from localStorage
+function loadStoredData() {
+  const saved = localStorage.getItem("table_hub_data");
+  if (saved) {
     try {
-      const parsed = JSON.parse(savedData);
-      if (Array.isArray(parsed.tables) && parsed.tables.length > 0) {
-        state.tables = parsed.tables;
-        state.totalCopies = parsed.totalCopies || parsed.tables.length;
-        state.activeTableId = parsed.activeTableId || parsed.tables[0].id;
-        state.viewMode = parsed.viewMode || "focused";
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        AppState.tables = parsed;
+        AppState.activeTableId = AppState.tables[0].id;
         return;
       }
     } catch (e) {
-      console.error("فشل قراءة البيانات المحفوظة، سيتم إنشاء الجداول الافتراضية:", e);
+      console.warn("Could not parse saved table data, resetting to defaults", e);
     }
   }
 
-  // إذا لم توجد بيانات، أنشئ 5 نسخ افتراضية
-  state.tables = [];
-  state.totalCopies = 5;
-  for (let i = 1; i <= 5; i++) {
-    state.tables.push(createDefaultTable(i, i));
-  }
-  state.activeTableId = 1;
-  saveData();
+  // First time visitor: Default exactly 1 Table
+  AppState.tables = [createDefaultTableData(1, 1)];
+  AppState.activeTableId = 1;
 }
 
-// ── حفظ البيانات في LocalStorage ──
+// Save Data to localStorage
 function saveData() {
-  const payload = {
-    tables: state.tables,
-    totalCopies: state.totalCopies,
-    activeTableId: state.activeTableId,
-    viewMode: state.viewMode,
-  };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  localStorage.setItem("table_hub_data", JSON.stringify(AppState.tables));
+  showToast(I18N[AppState.lang].autoSaveToast, "save");
 }
 
-// ── تطبيق وتغيير الثيم (Dark / Light) ──
-function applyTheme(theme) {
-  document.documentElement.setAttribute("data-theme", theme);
-  const themeLabel = document.querySelector(".theme-label");
-  if (themeLabel) {
-    themeLabel.textContent = theme === "dark" ? "الدارك مود" : "اللايت مود";
+// ── Language Management (EN / AR) ──
+function applyLanguage(lang, shouldReRender = true) {
+  AppState.lang = lang;
+  localStorage.setItem("table_hub_lang", lang);
+
+  const html = document.documentElement;
+  html.lang = lang;
+  html.dir = lang === "ar" ? "rtl" : "ltr";
+
+  // Translate all static elements with data-i18n
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    const key = el.getAttribute("data-i18n");
+    if (I18N[lang][key]) {
+      el.textContent = I18N[lang][key];
+    }
+  });
+
+  // Translate placeholders
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+    const key = el.getAttribute("data-i18n-placeholder");
+    if (I18N[lang][key]) {
+      el.placeholder = I18N[lang][key];
+    }
+  });
+
+  // Update Language Button Label (shows target language)
+  const langBtnText = document.getElementById("langBtnText");
+  if (langBtnText) {
+    langBtnText.textContent = I18N[lang].langSwitch;
   }
-  localStorage.setItem(THEME_KEY, theme);
+
+  // Update Theme Label
+  updateThemeLabel();
+
+  if (shouldReRender) {
+    renderApp();
+  }
+}
+
+function toggleLanguage() {
+  const newLang = AppState.lang === "en" ? "ar" : "en";
+  applyLanguage(newLang, true);
+}
+
+// ── Theme Management (Dark / Light) ──
+function applyTheme(theme, shouldSave = true) {
+  AppState.theme = theme;
+  if (shouldSave) {
+    localStorage.setItem("table_hub_theme", theme);
+  }
+  document.documentElement.setAttribute("data-theme", theme);
+  updateThemeLabel();
 }
 
 function toggleTheme() {
-  state.theme = state.theme === "dark" ? "light" : "dark";
-  applyTheme(state.theme);
-  showToast(`تم التبديل إلى وضع ${state.theme === "dark" ? "الدارك مود (أحمر وأسود)" : "اللايت مود (أحمر وأبيض)"}`);
+  const newTheme = AppState.theme === "dark" ? "light" : "dark";
+  applyTheme(newTheme, true);
 }
 
-// ── إظهار تنبيه توست سريع (Toast Notification) ──
-function showToast(message) {
-  const toast = document.getElementById("toast");
-  if (!toast) return;
-  toast.textContent = message;
-  toast.classList.add("show");
-  clearTimeout(toast._timer);
-  toast._timer = setTimeout(() => {
-    toast.classList.remove("show");
-  }, 2400);
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// إدارة التوسيع والتراجع للنسخ (More +5 & Undo -5)
-// ═══════════════════════════════════════════════════════════════════
-function addMoreCopies(count = 5) {
-  const startNum = state.tables.length + 1;
-  const newTables = [];
-
-  for (let i = 0; i < count; i++) {
-    const nextId = Date.now() + i;
-    const num = startNum + i;
-    newTables.push(createDefaultTable(nextId, num));
+function updateThemeLabel() {
+  const labelEl = document.querySelector(".theme-label");
+  if (labelEl) {
+    labelEl.textContent =
+      AppState.theme === "dark"
+        ? I18N[AppState.lang].themeDark
+        : I18N[AppState.lang].themeLight;
   }
+}
 
-  state.tables.push(...newTables);
-  state.totalCopies = state.tables.length;
-  saveData();
+// ── Global Event Bindings ──
+function bindGlobalEvents() {
+  // Theme Toggle
+  document.getElementById("themeToggleBtn")?.addEventListener("click", toggleTheme);
+
+  // Language Toggle
+  document.getElementById("langToggleBtn")?.addEventListener("click", toggleLanguage);
+
+  // View Mode Toggle (Tabs vs Grid)
+  document.getElementById("viewToggleBtn")?.addEventListener("click", toggleViewMode);
+
+  // Export All Tables
+  document.getElementById("exportAllBtn")?.addEventListener("click", exportAllTablesJSON);
+
+  // Global Search
+  const searchInput = document.getElementById("globalSearchInput");
+  const clearSearchBtn = document.getElementById("clearSearchBtn");
+
+  searchInput?.addEventListener("input", (e) => {
+    AppState.searchQuery = e.target.value.trim().toLowerCase();
+    if (clearSearchBtn) {
+      clearSearchBtn.style.display = AppState.searchQuery ? "block" : "none";
+    }
+    filterTableContent();
+  });
+
+  clearSearchBtn?.addEventListener("click", () => {
+    if (searchInput) searchInput.value = "";
+    AppState.searchQuery = "";
+    clearSearchBtn.style.display = "none";
+    filterTableContent();
+  });
+
+  // Scaling Controls (+1 / -1 / Reset)
+  document.getElementById("addTableBtn")?.addEventListener("click", () => addTable());
+  document.getElementById("quickAddTabBtn")?.addEventListener("click", () => addTable());
+  document.getElementById("removeTableBtn")?.addEventListener("click", () => removeLastTable());
+  document.getElementById("resetTablesBtn")?.addEventListener("click", () => resetTables());
+}
+
+// ── View Mode Switching (Tabs / Grid) ──
+function toggleViewMode() {
+  AppState.viewMode = AppState.viewMode === "tabs" ? "grid" : "tabs";
+  const btn = document.getElementById("viewToggleBtn");
+  if (btn) {
+    const textSpan = btn.querySelector(".btn-text");
+    const icon = btn.querySelector("i");
+    if (AppState.viewMode === "grid") {
+      if (textSpan) textSpan.textContent = I18N[AppState.lang].viewFocused;
+      if (icon) icon.className = "fa-solid fa-window-maximize";
+    } else {
+      if (textSpan) textSpan.textContent = I18N[AppState.lang].viewAll;
+      if (icon) icon.className = "fa-solid fa-table-cells-large";
+    }
+  }
   renderApp();
-  showToast(`✨ تمت إضافة ${count} نسخ جديدة بنجاح! الإجمالي: ${state.totalCopies} نسخة`);
 }
 
-function undoCopies(count = 5) {
-  if (state.tables.length <= 5) {
-    showToast("⚠️ لا يمكن التقليص، الحد الأدنى هو 5 نسخ!");
-    return;
-  }
+// ── Table Management (+1 / -1 / Reset / Duplicate) ──
+function addTable(customData = null) {
+  const nextId =
+    AppState.tables.length > 0
+      ? Math.max(...AppState.tables.map((t) => t.id)) + 1
+      : 1;
+  const nextIndex = AppState.tables.length + 1;
 
-  // حذف آخر 5 نسخ
-  state.tables.splice(state.tables.length - count, count);
-  state.totalCopies = state.tables.length;
-
-  // التأكد من أن الجدول النشط لا يزال موجوداً
-  const exists = state.tables.some((t) => t.id === state.activeTableId);
-  if (!exists) {
-    state.activeTableId = state.tables[0].id;
-  }
-
-  saveData();
-  renderApp();
-  showToast(`↩️ تم التراجع وإزالة ${count} نسخ. الإجمالي الحالي: ${state.totalCopies} نسخة`);
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// ريندر شريط التابات والتنقل (Render Tabs)
-// ═══════════════════════════════════════════════════════════════════
-function renderTabs() {
-  const container = document.getElementById("tabsContainer");
-  const summaryBadge = document.getElementById("tabsSummaryBadge");
-  const counterNumber = document.getElementById("copiesCounterNumber");
-  const undoBtn = document.getElementById("undoBtn");
-
-  if (summaryBadge) {
-    summaryBadge.innerHTML = `<i class="fa-solid fa-layer-group"></i> <span>${state.totalCopies} نسخ نشطة</span>`;
-  }
-  if (counterNumber) {
-    counterNumber.textContent = state.totalCopies;
-  }
-  if (undoBtn) {
-    undoBtn.disabled = state.tables.length <= 5;
-  }
-
-  if (!container) return;
-  container.innerHTML = "";
-
-  state.tables.forEach((table, index) => {
-    const tab = document.createElement("button");
-    tab.className = `tab-item ${state.activeTableId === table.id && state.viewMode === "focused" ? "active" : ""}`;
-    tab.title = table.title;
-    tab.innerHTML = `
-      <i class="fa-solid fa-table"></i>
-      <span>نسخة ${index + 1}</span>
-    `;
-
-    tab.addEventListener("click", () => {
-      state.activeTableId = table.id;
-      if (state.viewMode === "grid") {
-        state.viewMode = "focused";
-        updateViewToggleBtn();
+  const newTable = customData
+    ? {
+        ...customData,
+        id: nextId,
+        title: customData.title + (AppState.lang === "ar" ? " (نسخة مكررة)" : " (Copy)")
       }
+    : createDefaultTableData(nextId, nextIndex);
+
+  AppState.tables.push(newTable);
+  AppState.activeTableId = nextId;
+
+  saveData();
+  renderApp();
+
+  showToast(
+    I18N[AppState.lang].tableAddedToast.replace("{n}", nextIndex),
+    "add"
+  );
+}
+
+function removeLastTable() {
+  if (AppState.tables.length <= 1) return;
+
+  const removedIndex = AppState.tables.length;
+  const removed = AppState.tables.pop();
+
+  if (AppState.activeTableId === removed.id) {
+    AppState.activeTableId = AppState.tables[AppState.tables.length - 1].id;
+  }
+
+  saveData();
+  renderApp();
+
+  showToast(
+    I18N[AppState.lang].tableRemovedToast.replace("{n}", removedIndex),
+    "remove"
+  );
+}
+
+function removeTableById(id) {
+  if (AppState.tables.length <= 1) return;
+
+  const idx = AppState.tables.findIndex((t) => t.id === id);
+  if (idx === -1) return;
+
+  AppState.tables.splice(idx, 1);
+  if (AppState.activeTableId === id) {
+    AppState.activeTableId = AppState.tables[Math.max(0, idx - 1)].id;
+  }
+
+  saveData();
+  renderApp();
+}
+
+function resetTables() {
+  showModal(
+    I18N[AppState.lang].confirmResetTitle,
+    I18N[AppState.lang].confirmResetMsg,
+    () => {
+      AppState.tables = [createDefaultTableData(1, 1)];
+      AppState.activeTableId = 1;
       saveData();
       renderApp();
-      // التمرير السلس إلى الجدول
-      const targetCard = document.getElementById(`table-card-${table.id}`);
-      if (targetCard) {
-        targetCard.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  );
+}
+
+function duplicateTable(tableId) {
+  const source = AppState.tables.find((t) => t.id === tableId);
+  if (!source) return;
+
+  const cloned = JSON.parse(JSON.stringify(source));
+  addTable(cloned);
+}
+
+function clearTableData(tableId) {
+  const table = AppState.tables.find((t) => t.id === tableId);
+  if (!table) return;
+
+  showModal(
+    I18N[AppState.lang].confirmClearTitle,
+    I18N[AppState.lang].confirmClearMsg.replace("{name}", table.title),
+    () => {
+      table.rows = table.rows.map((row) => row.map(() => ""));
+      saveData();
+      renderApp();
+    }
+  );
+}
+
+// ── Rendering Engine ──
+function renderApp() {
+  renderTabs();
+  renderWorkspace();
+  updateSummaryIndicators();
+}
+
+// Render Tabs Bar
+function renderTabs() {
+  const container = document.getElementById("tabsContainer");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  AppState.tables.forEach((table, index) => {
+    const tabEl = document.createElement("div");
+    tabEl.className = `tab-item ${table.id === AppState.activeTableId ? "active" : ""}`;
+    tabEl.innerHTML = `
+      <i class="fa-solid fa-table"></i>
+      <span class="tab-label">${escapeHtml(table.title || `Table ${index + 1}`)}</span>
+      ${
+        AppState.tables.length > 1
+          ? `<button class="tab-close-btn" title="Remove Table" data-id="${table.id}">
+              <i class="fa-solid fa-xmark"></i>
+            </button>`
+          : ""
       }
+    `;
+
+    tabEl.addEventListener("click", (e) => {
+      if (e.target.closest(".tab-close-btn")) return;
+      AppState.activeTableId = table.id;
+      if (AppState.viewMode === "grid") {
+        AppState.viewMode = "tabs";
+        const btn = document.getElementById("viewToggleBtn");
+        if (btn) {
+          const textSpan = btn.querySelector(".btn-text");
+          if (textSpan) textSpan.textContent = I18N[AppState.lang].viewAll;
+        }
+      }
+      renderApp();
     });
 
-    container.appendChild(tab);
+    const closeBtn = tabEl.querySelector(".tab-close-btn");
+    if (closeBtn) {
+      closeBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        removeTableById(table.id);
+      });
+    }
+
+    container.appendChild(tabEl);
   });
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// ريندر كروت الجداول ومساحة العمل (Render Tables Workspace)
-// ═══════════════════════════════════════════════════════════════════
+// Render Workspace (Single Focused View vs Grid View)
 function renderWorkspace() {
   const workspace = document.getElementById("tableWorkspace");
   if (!workspace) return;
-  workspace.innerHTML = "";
 
-  // تحديد الجداول المطلوب عرضها بناء على وضع العرض
-  let tablesToDisplay = [];
-  if (state.viewMode === "grid") {
-    workspace.classList.add("grid-view");
-    tablesToDisplay = state.tables;
-  } else {
-    workspace.classList.remove("grid-view");
-    const active = state.tables.find((t) => t.id === state.activeTableId) || state.tables[0];
-    tablesToDisplay = [active];
+  workspace.innerHTML = "";
+  workspace.className =
+    AppState.viewMode === "grid"
+      ? "table-workspace workspace-grid-mode"
+      : "table-workspace";
+
+  const tablesToRender =
+    AppState.viewMode === "grid"
+      ? AppState.tables
+      : AppState.tables.filter((t) => t.id === AppState.activeTableId);
+
+  // If no table matched (edge case), render first table
+  if (tablesToRender.length === 0 && AppState.tables.length > 0) {
+    AppState.activeTableId = AppState.tables[0].id;
+    tablesToRender.push(AppState.tables[0]);
   }
 
-  tablesToDisplay.forEach((table) => {
-    const globalIndex = state.tables.findIndex((t) => t.id === table.id) + 1;
-    const card = createTableCardElement(table, globalIndex);
-    workspace.appendChild(card);
+  tablesToRender.forEach((table, index) => {
+    const cardEl = createTableCardElement(table, index + 1);
+    workspace.appendChild(cardEl);
   });
+
+  if (AppState.searchQuery) {
+    filterTableContent();
+  }
 }
 
-// إنشاء عنصر بطاقة جدول كاملة
-function createTableCardElement(table, globalIndex) {
+// Create HTML for a Table Card
+function createTableCardElement(table, displayIndex) {
   const card = document.createElement("div");
   card.className = "table-card";
   card.id = `table-card-${table.id}`;
 
-  // 1. رأس البطاقة (Header)
-  const header = document.createElement("div");
-  header.className = "table-card-header";
-  header.innerHTML = `
-    <div class="table-meta-box">
-      <span class="table-index-badge">نسخة #${globalIndex}</span>
-      <input type="text" class="table-title-editable" value="${escapeHtml(table.title)}" title="انقر لتعديل عنوان النسخة" />
-      <span class="table-counts">(${table.rows.length} صفوف × ${table.headers.length} أعمدة)</span>
-    </div>
-    <div class="table-actions-top">
-      <button class="mod-btn duplicate-btn" title="تكرار هذه النسخة">
-        <i class="fa-solid fa-copy"></i>
-        <span>تكرار</span>
-      </button>
-      <button class="mod-btn export-csv-btn" title="تصدير كملف Excel / CSV">
-        <i class="fa-solid fa-file-csv"></i>
-        <span>CSV</span>
-      </button>
-      <button class="mod-btn print-btn" title="طباعة الجدول">
-        <i class="fa-solid fa-print"></i>
-        <span>طباعة</span>
-      </button>
-      <button class="mod-btn danger-btn clear-btn" title="تفريغ محتويات الجدول">
-        <i class="fa-solid fa-trash-can"></i>
-        <span>تفريغ</span>
-      </button>
-    </div>
-  `;
+  const lang = AppState.lang;
+  const i18n = I18N[lang];
 
-  // تعديل عنوان الجدول
-  const titleInput = header.querySelector(".table-title-editable");
-  titleInput.addEventListener("change", (e) => {
-    table.title = e.target.value.trim() || `نسخة ${globalIndex}: جدول البيانات`;
-    saveData();
-    renderTabs();
-    showToast("💾 تم حفظ عنوان الجدول بنجاح!");
-  });
-
-  // 2. شريط التحكم بالأبعاد والتحجيم (Dimension Controls Bar)
-  const dimBar = document.createElement("div");
-  dimBar.className = "table-dimension-bar";
-  dimBar.innerHTML = `
-    <!-- تحكم في العرض -->
-    <div class="dimension-slider-group">
-      <span class="slider-label"><i class="fa-solid fa-arrows-left-right"></i> عرض الجدول:</span>
-      <input type="range" class="dimension-slider width-slider" min="50" max="100" value="${table.widthPercent || 100}" />
-      <span class="slider-val-badge width-val">${table.widthPercent || 100}%</span>
-    </div>
-
-    <!-- تحكم في ارتفاع الخلايا -->
-    <div class="dimension-slider-group">
-      <span class="slider-label"><i class="fa-solid fa-arrows-up-down"></i> تباعد الصفوف:</span>
-      <input type="range" class="dimension-slider height-slider" min="32" max="68" value="${table.cellHeight || 44}" />
-      <span class="slider-val-badge height-val">${table.cellHeight || 44}px</span>
-    </div>
-
-    <!-- أزرار الإضافة والتعديل السريع -->
-    <div class="table-grid-modifiers">
-      <button class="mod-btn add-row-btn" title="إضافة صف جديد للجدول">
-        <i class="fa-solid fa-plus"></i> صف
-      </button>
-      <button class="mod-btn danger-btn remove-row-btn" title="حذف آخر صف">
-        <i class="fa-solid fa-minus"></i> صف
-      </button>
-      <button class="mod-btn add-col-btn" title="إضافة عمود جديد للجدول">
-        <i class="fa-solid fa-plus"></i> عمود
-      </button>
-      <button class="mod-btn danger-btn remove-col-btn" title="حذف آخر عمود">
-        <i class="fa-solid fa-minus"></i> عمود
-      </button>
-    </div>
-  `;
-
-  // 3. الجدول الفعلي (Responsive Table Wrapper)
-  const wrapper = document.createElement("div");
-  wrapper.className = "table-responsive-wrapper";
-  wrapper.style.width = `${table.widthPercent || 100}%`;
-
-  const dataTable = document.createElement("table");
-  dataTable.className = "custom-data-table";
-
-  // بناء رأس الجدول (THEAD)
-  const thead = document.createElement("thead");
-  const trHead = document.createElement("tr");
-
-  // عمود الترقيم #
-  const thIndex = document.createElement("th");
-  thIndex.className = "col-index";
-  thIndex.textContent = "#";
-  trHead.appendChild(thIndex);
-
-  // رؤوس الأعمدة القابلة للتعديل
-  table.headers.forEach((hText, colIndex) => {
-    const th = document.createElement("th");
-    th.innerHTML = `
-      <div class="th-content">
-        <input type="text" class="th-input" value="${escapeHtml(hText)}" title="انقر لتعديل اسم العمود" />
+  card.innerHTML = `
+    <!-- Table Header -->
+    <div class="table-card-header">
+      <div class="table-title-area">
+        <span class="table-badge-index">#${displayIndex}</span>
+        <input 
+          type="text" 
+          class="table-title-input" 
+          value="${escapeHtml(table.title)}" 
+          placeholder="${i18n.tableDefaultTitle.replace("{n}", displayIndex)}" 
+          data-table-id="${table.id}"
+        />
       </div>
-    `;
 
-    const thInput = th.querySelector(".th-input");
-    thInput.addEventListener("change", (e) => {
-      table.headers[colIndex] = e.target.value.trim() || `عمود ${colIndex + 1}`;
-      saveData();
-      showToast("💾 تم تحديث اسم العمود!");
-    });
+      <div class="table-quick-actions">
+        <!-- Duplicate Button -->
+        <button class="card-action-btn" data-action="duplicate" data-table-id="${table.id}" title="${i18n.duplicate}">
+          <i class="fa-solid fa-copy"></i>
+          <span>${i18n.duplicate}</span>
+        </button>
 
-    trHead.appendChild(th);
-  });
-  thead.appendChild(trHead);
-  dataTable.appendChild(thead);
+        <!-- Clear Button -->
+        <button class="card-action-btn btn-danger" data-action="clear" data-table-id="${table.id}" title="${i18n.clear}">
+          <i class="fa-solid fa-trash-can"></i>
+          <span>${i18n.clear}</span>
+        </button>
 
-  // بناء جسم الجدول (TBODY)
-  const tbody = document.createElement("tbody");
-  table.rows.forEach((row, rowIndex) => {
-    const tr = document.createElement("tr");
+        <!-- Export CSV Button -->
+        <button class="card-action-btn" data-action="export-csv" data-table-id="${table.id}" title="${i18n.exportCsv}">
+          <i class="fa-solid fa-file-csv"></i>
+          <span>${i18n.exportCsv}</span>
+        </button>
 
-    // خلية رقم الصف
-    const tdIndex = document.createElement("td");
-    tdIndex.className = "cell-index";
-    tdIndex.textContent = rowIndex + 1;
-    tr.appendChild(tdIndex);
-
-    // خلايا البيانات القابلة للتحرير المباشر
-    table.headers.forEach((_, colIndex) => {
-      const td = document.createElement("td");
-      const cellVal = row[colIndex] !== undefined ? row[colIndex] : "";
-
-      const editableDiv = document.createElement("div");
-      editableDiv.className = "cell-editable";
-      editableDiv.contentEditable = "true";
-      editableDiv.spellcheck = false;
-      editableDiv.textContent = cellVal;
-      editableDiv.style.minHeight = `${table.cellHeight || 44}px`;
-
-      // حفظ القيمة عند انتهاء التعديل
-      editableDiv.addEventListener("blur", () => {
-        const newVal = editableDiv.textContent.trim();
-        table.rows[rowIndex][colIndex] = newVal;
-        saveData();
-      });
-
-      // اختصارات لوحة المفاتيح للتنقل بالإنتر
-      editableDiv.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-          e.preventDefault();
-          editableDiv.blur();
-          // الانتقال للخلية التي في الصف التالي
-          const nextRow = tbody.children[rowIndex + 1];
-          if (nextRow) {
-            const nextCell = nextRow.children[colIndex + 1]?.querySelector(".cell-editable");
-            if (nextCell) nextCell.focus();
-          }
-        }
-      });
-
-      td.appendChild(editableDiv);
-      tr.appendChild(td);
-    });
-
-    tbody.appendChild(tr);
-  });
-  dataTable.appendChild(tbody);
-  wrapper.appendChild(dataTable);
-
-  // 4. أزرار الفوتر الخاصة بالجدول
-  const footerActions = document.createElement("div");
-  footerActions.className = "table-footer-actions";
-  footerActions.innerHTML = `
-    <div style="font-size: 0.85rem; color: var(--text-dim); display: flex; align-items: center; gap: 8px;">
-      <i class="fa-solid fa-circle-check" style="color: var(--red-bright);"></i>
-      <span>تم الحفظ تلقائياً في التخزين المحلي</span>
+        <!-- Print Button -->
+        <button class="card-action-btn" data-action="print" data-table-id="${table.id}" title="${i18n.print}">
+          <i class="fa-solid fa-print"></i>
+          <span>${i18n.print}</span>
+        </button>
+      </div>
     </div>
-    <div style="display: flex; gap: 8px;">
-      <button class="table-ctrl-btn add-row-quick-btn">
-        <i class="fa-solid fa-plus"></i> إضافة صف جديد
-      </button>
+
+    <!-- Table Toolbar (Width slider, Spacing, +Row, +Col) -->
+    <div class="table-toolbar">
+      <div class="toolbar-group">
+        <!-- Table Width Slider -->
+        <div class="slider-control">
+          <span><i class="fa-solid fa-arrows-left-right"></i> ${i18n.widthLabel}</span>
+          <input 
+            type="range" 
+            min="50" 
+            max="100" 
+            value="${table.widthPercent || 100}" 
+            data-table-id="${table.id}" 
+            class="table-width-slider" 
+          />
+          <span class="width-val-display">${table.widthPercent || 100}%</span>
+        </div>
+
+        <!-- Row Spacing Picker -->
+        <div class="row-spacing-picker">
+          <button class="spacing-btn ${table.spacing === "compact" ? "active" : ""}" data-spacing="compact" data-table-id="${table.id}">
+            ${i18n.compact}
+          </button>
+          <button class="spacing-btn ${table.spacing === "normal" || !table.spacing ? "active" : ""}" data-spacing="normal" data-table-id="${table.id}">
+            ${i18n.normal}
+          </button>
+          <button class="spacing-btn ${table.spacing === "spacious" ? "active" : ""}" data-spacing="spacious" data-table-id="${table.id}">
+            ${i18n.spacious}
+          </button>
+        </div>
+      </div>
+
+      <div class="toolbar-group">
+        <!-- Add Row Button -->
+        <button class="toolbar-btn" data-action="add-row" data-table-id="${table.id}">
+          <i class="fa-solid fa-plus"></i>
+          <span>${i18n.addRow}</span>
+        </button>
+
+        <!-- Add Column Button -->
+        <button class="toolbar-btn" data-action="add-col" data-table-id="${table.id}">
+          <i class="fa-solid fa-table-columns"></i>
+          <span>${i18n.addCol}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Table Responsive Wrapper -->
+    <div class="table-responsive-wrapper" style="width: ${table.widthPercent || 100}%;">
+      <table class="data-table spacing-${table.spacing || "normal"}" data-table-id="${table.id}">
+        <thead>
+          <tr>
+            <th class="row-idx-cell">#</th>
+            ${table.columns
+              .map(
+                (colName, colIdx) => `
+              <th data-col-idx="${colIdx}">
+                <div class="th-content">
+                  <span class="th-editable-title" contenteditable="true" spellcheck="false">${escapeHtml(colName)}</span>
+                  ${
+                    table.columns.length > 1
+                      ? `<button class="th-delete-col-btn" title="Delete Column" data-col-idx="${colIdx}">
+                          <i class="fa-solid fa-xmark"></i>
+                        </button>`
+                      : ""
+                  }
+                </div>
+              </th>`
+              )
+              .join("")}
+          </tr>
+        </thead>
+        <tbody>
+          ${table.rows
+            .map(
+              (row, rowIdx) => `
+            <tr data-row-idx="${rowIdx}">
+              <td class="row-idx-cell">
+                <span class="row-num">${rowIdx + 1}</span>
+                ${
+                  table.rows.length > 1
+                    ? `<button class="row-delete-btn" title="Delete Row" data-row-idx="${rowIdx}">
+                        <i class="fa-solid fa-minus"></i>
+                      </button>`
+                    : ""
+                }
+              </td>
+              ${row
+                .map(
+                  (cellVal, colIdx) => `
+                <td contenteditable="true" spellcheck="false" data-row="${rowIdx}" data-col="${colIdx}">${escapeHtml(cellVal)}</td>`
+                )
+                .join("")}
+            </tr>`
+            )
+            .join("")}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Table Status Bar -->
+    <div class="table-status-bar">
+      <div class="status-stats">
+        <span class="stat-pill"><i class="fa-solid fa-bars"></i> ${i18n.rowsCount.replace("{n}", table.rows.length)}</span>
+        <span class="stat-pill"><i class="fa-solid fa-table-columns"></i> ${i18n.colsCount.replace("{n}", table.columns.length)}</span>
+        <span class="stat-pill"><i class="fa-solid fa-border-all"></i> ${i18n.cellsCount.replace("{n}", table.rows.length * table.columns.length)}</span>
+      </div>
+      <div class="status-saved">
+        <i class="fa-solid fa-circle-check" style="color: var(--accent-red);"></i> ${i18n.autoSaveToast}
+      </div>
     </div>
   `;
 
-  // ربط أحداث أزرار التحكم
-  // أ) شريط التحجيم العرض
-  const widthSlider = dimBar.querySelector(".width-slider");
-  const widthValBadge = dimBar.querySelector(".width-val");
-  widthSlider.addEventListener("input", (e) => {
-    const val = e.target.value;
-    table.widthPercent = val;
-    widthValBadge.textContent = `${val}%`;
-    wrapper.style.width = `${val}%`;
-  });
-  widthSlider.addEventListener("change", saveData);
-
-  // ب) شريط تباعد الصفوف (الارتفاع)
-  const heightSlider = dimBar.querySelector(".height-slider");
-  const heightValBadge = dimBar.querySelector(".height-val");
-  heightSlider.addEventListener("input", (e) => {
-    const val = e.target.value;
-    table.cellHeight = val;
-    heightValBadge.textContent = `${val}px`;
-    wrapper.querySelectorAll(".cell-editable").forEach((cell) => {
-      cell.style.minHeight = `${val}px`;
-    });
-  });
-  heightSlider.addEventListener("change", saveData);
-
-  // ج) إضافة صف
-  const addRow = () => {
-    const newRow = new Array(table.headers.length).fill("");
-    table.rows.push(newRow);
-    saveData();
-    renderWorkspace();
-    showToast("➕ تمت إضافة صف جديد!");
-  };
-  dimBar.querySelector(".add-row-btn").addEventListener("click", addRow);
-  footerActions.querySelector(".add-row-quick-btn").addEventListener("click", addRow);
-
-  // د) حذف صف
-  dimBar.querySelector(".remove-row-btn").addEventListener("click", () => {
-    if (table.rows.length <= 1) {
-      showToast("⚠️ لا يمكن حذف المزيد، يجب بقاء صف واحد على الأقل!");
-      return;
-    }
-    table.rows.pop();
-    saveData();
-    renderWorkspace();
-    showToast("➖ تم حذف الصف الأخير!");
-  });
-
-  // هـ) إضافة عمود
-  dimBar.querySelector(".add-col-btn").addEventListener("click", () => {
-    const colName = `عمود ${table.headers.length + 1}`;
-    table.headers.push(colName);
-    table.rows.forEach((r) => r.push(""));
-    saveData();
-    renderWorkspace();
-    showToast("➕ تمت إضافة عمود جديد!");
-  });
-
-  // و) حذف عمود
-  dimBar.querySelector(".remove-col-btn").addEventListener("click", () => {
-    if (table.headers.length <= 1) {
-      showToast("⚠️ لا يمكن حذف المزيد، يجب بقاء عمود واحد على الأقل!");
-      return;
-    }
-    table.headers.pop();
-    table.rows.forEach((r) => r.pop());
-    saveData();
-    renderWorkspace();
-    showToast("➖ تم حذف العمود الأخير!");
-  });
-
-  // ز) تفريغ الجدول
-  header.querySelector(".clear-btn").addEventListener("click", () => {
-    if (confirm(`هل أنت متأكد من تفريغ كافة بيانات "${table.title}"؟`)) {
-      table.rows = [new Array(table.headers.length).fill("")];
-      saveData();
-      renderWorkspace();
-      showToast("🗑️ تم تفريغ بيانات الجدول!");
-    }
-  });
-
-  // ح) تكرار الجدول
-  header.querySelector(".duplicate-btn").addEventListener("click", () => {
-    const clonedTable = JSON.parse(JSON.stringify(table));
-    clonedTable.id = Date.now();
-    clonedTable.title = `${table.title} (نسخة مكررة)`;
-    state.tables.push(clonedTable);
-    state.totalCopies = state.tables.length;
-    state.activeTableId = clonedTable.id;
-    saveData();
-    renderApp();
-    showToast("📋 تم تكرار الجدول بنجاح!");
-  });
-
-  // ط) تصدير كـ CSV
-  header.querySelector(".export-csv-btn").addEventListener("click", () => {
-    exportTableToCSV(table);
-  });
-
-  // ي) طباعة الجدول
-  header.querySelector(".print-btn").addEventListener("click", () => {
-    printSingleTable(table);
-  });
-
-  // تجميع عناصر الكارت
-  card.appendChild(header);
-  card.appendChild(dimBar);
-  card.appendChild(wrapper);
-  card.appendChild(footerActions);
-
+  bindCardEvents(card, table);
   return card;
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// وظائف التصدير والطباعة (Export & Print Helpers)
-// ═══════════════════════════════════════════════════════════════════
-function exportTableToCSV(table) {
-  let csvContent = "\uFEFF"; // BOM لدعم اللغة العربية في Excel
-  // كتابة العناوين
-  csvContent += table.headers.map((h) => `"${h.replace(/"/g, '""')}"`).join(",") + "\r\n";
-  // كتابة الصفوف
-  table.rows.forEach((row) => {
-    const rowLine = row.map((cell) => `"${(cell || "").replace(/"/g, '""')}"`).join(",");
-    csvContent += rowLine + "\r\n";
+// Bind Events inside a single Table Card
+function bindCardEvents(card, table) {
+  // Title Input
+  const titleInput = card.querySelector(".table-title-input");
+  titleInput?.addEventListener("input", (e) => {
+    table.title = e.target.value;
+    updateTabTitle(table.id, table.title);
+    saveData();
   });
 
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.setAttribute("href", url);
-  link.setAttribute("download", `${table.title.replace(/[\\/:*?"<>|]/g, "_")}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-  showToast("📥 تم تحميل ملف CSV بنجاح!");
-}
+  // Action Buttons
+  card.querySelectorAll(".card-action-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const action = btn.getAttribute("data-action");
+      if (action === "duplicate") duplicateTable(table.id);
+      if (action === "clear") clearTableData(table.id);
+      if (action === "export-csv") exportTableCSV(table.id);
+      if (action === "print") printSingleTable(table.id);
+    });
+  });
 
-function printSingleTable(table) {
-  const printWindow = window.open("", "_blank");
-  let tableHtml = `
-    <table border="1" cellpadding="8" style="width:100%; border-collapse:collapse; text-align:center; direction:rtl; font-family:sans-serif;">
-      <thead>
-        <tr style="background:#dc2626; color:white;">
-          <th>#</th>
-          ${table.headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}
-        </tr>
-      </thead>
-      <tbody>
-        ${table.rows
-          .map(
-            (r, i) => `
-          <tr>
-            <td style="background:#fee2e2; font-weight:bold;">${i + 1}</td>
-            ${r.map((c) => `<td>${escapeHtml(c || "")}</td>`).join("")}
-          </tr>
-        `
-          )
-          .join("")}
-      </tbody>
-    </table>
-  `;
+  // Width Slider
+  const widthSlider = card.querySelector(".table-width-slider");
+  const widthDisplay = card.querySelector(".width-val-display");
+  const wrapper = card.querySelector(".table-responsive-wrapper");
 
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html dir="rtl">
-    <head>
-      <title>${escapeHtml(table.title)}</title>
-      <style>body { font-family: "Cairo", sans-serif; padding: 20px; }</style>
-    </head>
-    <body>
-      <h2 style="color:#dc2626; text-align:center;">${escapeHtml(table.title)}</h2>
-      ${tableHtml}
-      <script>window.onload = function() { window.print(); window.close(); };</script>
-    </body>
-    </html>
-  `);
-  printWindow.document.close();
-}
+  widthSlider?.addEventListener("input", (e) => {
+    const val = e.target.value;
+    table.widthPercent = Number(val);
+    if (widthDisplay) widthDisplay.textContent = `${val}%`;
+    if (wrapper) wrapper.style.width = `${val}%`;
+    saveData();
+  });
 
-// ═══════════════════════════════════════════════════════════════════
-// أدوات البحث والمساعدة (Search & View Mode Helpers)
-// ═══════════════════════════════════════════════════════════════════
-function setupSearch() {
-  const searchInput = document.getElementById("globalSearchInput");
-  if (!searchInput) return;
+  // Row Spacing Buttons
+  card.querySelectorAll(".spacing-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const spacing = btn.getAttribute("data-spacing");
+      table.spacing = spacing;
+      const dataTable = card.querySelector(".data-table");
+      if (dataTable) {
+        dataTable.className = `data-table spacing-${spacing}`;
+      }
+      card.querySelectorAll(".spacing-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      saveData();
+    });
+  });
 
-  searchInput.addEventListener("input", (e) => {
-    const query = e.target.value.trim().toLowerCase();
-    const cells = document.querySelectorAll(".cell-editable");
+  // Add Row
+  card.querySelector('[data-action="add-row"]')?.addEventListener("click", () => {
+    const emptyRow = new Array(table.columns.length).fill("");
+    table.rows.push(emptyRow);
+    saveData();
+    renderApp();
+  });
 
-    cells.forEach((cell) => {
-      const text = cell.textContent.toLowerCase();
-      if (query && text.includes(query)) {
-        cell.style.background = "rgba(239, 68, 68, 0.4)";
-        cell.style.boxShadow = "0 0 10px rgba(239, 68, 68, 0.8)";
-      } else {
-        cell.style.background = "";
-        cell.style.boxShadow = "";
+  // Add Column
+  card.querySelector('[data-action="add-col"]')?.addEventListener("click", () => {
+    const nextColNum = table.columns.length + 1;
+    const colName = I18N[AppState.lang].colDefault.replace("{n}", nextColNum);
+    table.columns.push(colName);
+    table.rows.forEach((row) => row.push(""));
+    saveData();
+    renderApp();
+  });
+
+  // Header Title Edit
+  card.querySelectorAll(".th-editable-title").forEach((thTitle) => {
+    thTitle.addEventListener("blur", () => {
+      const colIdx = Number(thTitle.closest("th").getAttribute("data-col-idx"));
+      table.columns[colIdx] = thTitle.textContent.trim() || `Col ${colIdx + 1}`;
+      saveData();
+    });
+  });
+
+  // Delete Column
+  card.querySelectorAll(".th-delete-col-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const colIdx = Number(btn.getAttribute("data-col-idx"));
+      if (table.columns.length <= 1) return;
+
+      table.columns.splice(colIdx, 1);
+      table.rows.forEach((row) => row.splice(colIdx, 1));
+      saveData();
+      renderApp();
+    });
+  });
+
+  // Delete Row
+  card.querySelectorAll(".row-delete-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const rowIdx = Number(btn.getAttribute("data-row-idx"));
+      if (table.rows.length <= 1) return;
+
+      table.rows.splice(rowIdx, 1);
+      saveData();
+      renderApp();
+    });
+  });
+
+  // Editable Cells
+  card.querySelectorAll("tbody td[contenteditable='true']").forEach((td) => {
+    td.addEventListener("input", () => {
+      const r = Number(td.getAttribute("data-row"));
+      const c = Number(td.getAttribute("data-col"));
+      if (table.rows[r]) {
+        table.rows[r][c] = td.textContent;
+        saveData();
+      }
+    });
+
+    // Arrow Key & Tab Cell Navigation
+    td.addEventListener("keydown", (e) => {
+      const r = Number(td.getAttribute("data-row"));
+      const c = Number(td.getAttribute("data-col"));
+
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        const nextCell = card.querySelector(`td[data-row="${r + 1}"][data-col="${c}"]`);
+        if (nextCell) nextCell.focus();
       }
     });
   });
 }
 
-function updateViewToggleBtn() {
-  const btn = document.getElementById("viewToggleBtn");
-  if (!btn) return;
-  if (state.viewMode === "grid") {
-    btn.innerHTML = `<i class="fa-solid fa-table"></i> <span class="btn-text">عرض مركز</span>`;
-    btn.title = "التبديل إلى عرض جدول واحد مركز";
-  } else {
-    btn.innerHTML = `<i class="fa-solid fa-table-cells-large"></i> <span class="btn-text">عرض الكل</span>`;
-    btn.title = "التبديل إلى عرض كل الجداول بجانب بعضها";
+// Update Tab Title when user types in table card title
+function updateTabTitle(tableId, title) {
+  const tabs = document.querySelectorAll(".tab-item");
+  AppState.tables.forEach((t, i) => {
+    if (t.id === tableId && tabs[i]) {
+      const label = tabs[i].querySelector(".tab-label");
+      if (label) label.textContent = title || `Table ${i + 1}`;
+    }
+  });
+}
+
+// Update Active Count & Disable -1 Button when count == 1
+function updateSummaryIndicators() {
+  const count = AppState.tables.length;
+  const lang = AppState.lang;
+
+  // Tabs Summary Badge
+  const summaryBadge = document.getElementById("activeCountText");
+  if (summaryBadge) {
+    summaryBadge.textContent =
+      count === 1
+        ? I18N[lang].tableActiveSingle
+        : I18N[lang].tableActivePlural.replace("{n}", count);
+  }
+
+  // Scaling Deck Pill Number
+  const scaleCountNumber = document.getElementById("scaleCountNumber");
+  if (scaleCountNumber) {
+    scaleCountNumber.textContent = count;
+  }
+
+  // Disable Remove Button if only 1 table left
+  const removeBtn = document.getElementById("removeTableBtn");
+  if (removeBtn) {
+    removeBtn.disabled = count <= 1;
   }
 }
 
-function setupViewToggle() {
-  const btn = document.getElementById("viewToggleBtn");
-  if (!btn) return;
-  btn.addEventListener("click", () => {
-    state.viewMode = state.viewMode === "focused" ? "grid" : "focused";
-    updateViewToggleBtn();
-    saveData();
-    renderApp();
-    showToast(`تم التبديل إلى: ${state.viewMode === "grid" ? "عرض كل الجداول (شبكة)" : "عرض جدول واحد مركز"}`);
+// ── Search & Filter Engine ──
+function filterTableContent() {
+  const query = AppState.searchQuery;
+  const cards = document.querySelectorAll(".table-card");
+
+  cards.forEach((card) => {
+    const rows = card.querySelectorAll("tbody tr");
+    rows.forEach((row) => {
+      if (!query) {
+        row.style.display = "";
+        row.querySelectorAll("td").forEach((td) => {
+          td.style.backgroundColor = "";
+        });
+        return;
+      }
+
+      let matches = false;
+      row.querySelectorAll("td[contenteditable='true']").forEach((td) => {
+        const text = td.textContent.toLowerCase();
+        if (text.includes(query)) {
+          matches = true;
+          td.style.backgroundColor = "var(--table-selected)";
+        } else {
+          td.style.backgroundColor = "";
+        }
+      });
+
+      row.style.display = matches ? "" : "none";
+    });
   });
 }
 
-// تصدير كافّة الجداول كنسخة احتياطية JSON
-function setupExportAll() {
-  const btn = document.getElementById("exportAllBtn");
-  if (!btn) return;
-  btn.addEventListener("click", () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.tables, null, 2));
-    const dlAnchor = document.createElement("a");
-    dlAnchor.setAttribute("href", dataStr);
-    dlAnchor.setAttribute("download", `TableHub_Backup_${state.tables.length}_Tables.json`);
-    dlAnchor.click();
-    showToast(`💾 تم تصدير بيانات ${state.tables.length} نسخ بنجاح!`);
-  });
+// ── Export Features (CSV with UTF-8 BOM & JSON) ──
+function exportTableCSV(tableId) {
+  const table = AppState.tables.find((t) => t.id === tableId);
+  if (!table) return;
+
+  const escapeCsv = (str) => {
+    if (str === null || str === undefined) return '""';
+    const s = String(str).replace(/"/g, '""');
+    return `"${s}"`;
+  };
+
+  const headerRow = table.columns.map(escapeCsv).join(",");
+  const bodyRows = table.rows.map((row) => row.map(escapeCsv).join(","));
+  const csvContent = [headerRow, ...bodyRows].join("\r\n");
+
+  // \uFEFF (UTF-8 BOM) is essential so Microsoft Excel opens Arabic text correctly!
+  const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const cleanTitle = (table.title || "Table").replace(/[^a-zA-Z0-9_\u0600-\u06FF]/g, "_");
+
+  a.href = url;
+  a.download = `${cleanTitle}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showToast(
+    I18N[AppState.lang].csvExportedToast.replace("{name}", table.title),
+    "export"
+  );
 }
 
-// دالة حماية من الـ XSS
+function exportAllTablesJSON() {
+  const dataStr = JSON.stringify(AppState.tables, null, 2);
+  const blob = new Blob([dataStr], { type: "application/json;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `TableHub_AllTables_${Date.now()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showToast(I18N[AppState.lang].allExportedToast, "export");
+}
+
+function printSingleTable(tableId) {
+  window.print();
+}
+
+// ── Modal Dialog ──
+function showModal(title, message, onConfirm) {
+  const overlay = document.getElementById("modalOverlay");
+  const titleEl = document.getElementById("modalTitle");
+  const msgEl = document.getElementById("modalMessage");
+  const confirmBtn = document.getElementById("modalConfirmBtn");
+  const cancelBtn = document.getElementById("modalCancelBtn");
+
+  if (!overlay || !titleEl || !msgEl || !confirmBtn || !cancelBtn) return;
+
+  titleEl.textContent = title;
+  msgEl.textContent = message;
+  confirmBtn.textContent = I18N[AppState.lang].confirmBtn;
+  cancelBtn.textContent = I18N[AppState.lang].cancelBtn;
+
+  overlay.style.display = "flex";
+
+  const cleanup = () => {
+    overlay.style.display = "none";
+    confirmBtn.onclick = null;
+    cancelBtn.onclick = null;
+  };
+
+  confirmBtn.onclick = () => {
+    cleanup();
+    if (onConfirm) onConfirm();
+  };
+
+  cancelBtn.onclick = () => {
+    cleanup();
+  };
+}
+
+// ── Toast Notification ──
+function showToast(message, type = "info") {
+  const container = document.getElementById("toastContainer");
+  if (!container) return;
+
+  const toast = document.createElement("div");
+  toast.className = `toast-item toast-${type}`;
+
+  let icon = "fa-solid fa-circle-check";
+  if (type === "add") icon = "fa-solid fa-plus";
+  if (type === "remove") icon = "fa-solid fa-trash-can";
+  if (type === "export") icon = "fa-solid fa-file-arrow-down";
+
+  toast.innerHTML = `<i class="${icon}" style="color: var(--accent-red);"></i> <span>${escapeHtml(message)}</span>`;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(10px)";
+    toast.style.transition = "all 0.3s ease";
+    setTimeout(() => {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 300);
+  }, 2200);
+}
+
+// Helper to sanitize HTML strings
 function escapeHtml(str) {
   if (str === null || str === undefined) return "";
   return String(str)
@@ -666,39 +999,3 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
-
-// ── الدالة الرئيسية لتحديث كامل الواجهة (Render App) ──
-function renderApp() {
-  renderTabs();
-  renderWorkspace();
-  updateViewToggleBtn();
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// بدء التشغيل (DOM Content Loaded)
-// ═══════════════════════════════════════════════════════════════════
-document.addEventListener("DOMContentLoaded", () => {
-  initData();
-
-  // أزرار زيادة وتقليص النسخ (More +5 / Undo -5)
-  const moreBtn = document.getElementById("moreBtn");
-  if (moreBtn) {
-    moreBtn.addEventListener("click", () => addMoreCopies(5));
-  }
-
-  const undoBtn = document.getElementById("undoBtn");
-  if (undoBtn) {
-    undoBtn.addEventListener("click", () => undoCopies(5));
-  }
-
-  // زر تبديل الثيم
-  const themeBtn = document.getElementById("themeToggleBtn");
-  if (themeBtn) {
-    themeBtn.addEventListener("click", toggleTheme);
-  }
-
-  setupSearch();
-  setupViewToggle();
-  setupExportAll();
-  renderApp();
-});
