@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ar" dir="rtl" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>جدول | Table Hub</title>
+    
+    <!-- Favicon & Icons -->
+    <link rel="icon" href="images/logo.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="images/logo.png" />
+    <meta name="theme-color" content="#dc2626" />
+
+    <!-- Google Fonts: Tajawal, Cairo, Exo 2 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Exo+2:wght@500;700&family=Tajawal:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- FontAwesome & Bootstrap Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
+
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- ── رأس الصفحة العلوي (Header) ── -->
+    <header class="app-header">
+      <div class="header-container">
+        <!-- الشعار والعنوان -->
+        <div class="brand-box">
+          <div class="logo-wrapper">
+            <img src="images/logo.svg" alt="Table Hub Logo" class="brand-logo" />
+            <div class="logo-pulse"></div>
+          </div>
+          <div class="brand-text">
+            <h1 class="brand-title">جدول <span class="badge-title">Table Hub</span></h1>
+            <p class="brand-subtitle">نظام الجداول المتعددة والتحكم الشامل</p>
+          </div>
+        </div>
+
+        <!-- أزرار الإعدادات والتحكم العامة -->
+        <div class="header-actions">
+          <!-- محرك بحث سريع في كل الجداول -->
+          <div class="search-wrapper">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input
+              type="text"
+              id="globalSearchInput"
+              class="search-input"
+              placeholder="بحث في محتوى الجداول..."
+            />
+          </div>
+
+          <!-- زر تبديل طريقة العرض (جدول فردي مركز / شبكة كل الجداول) -->
+          <button id="viewToggleBtn" class="header-btn" title="تبديل طريقة العرض">
+            <i class="fa-solid fa-table-cells-large"></i>
+            <span class="btn-text">عرض الكل</span>
+          </button>
+
+          <!-- زر تصدير شامل لكل الجداول -->
+          <button id="exportAllBtn" class="header-btn" title="تصدير كافّة الجداول كملف JSON">
+            <i class="fa-solid fa-cloud-arrow-down"></i>
+            <span class="btn-text">تصدير النسخ</span>
+          </button>
+
+          <!-- زر تبديل الثيم (أحمر وأسود / أحمر وأبيض) -->
+          <button id="themeToggleBtn" class="theme-toggle-btn" title="تبديل وضع الألوان">
+            <div class="theme-icon-box">
+              <i class="fa-solid fa-moon icon-dark"></i>
+              <i class="fa-solid fa-sun icon-light"></i>
+            </div>
+            <span class="theme-label">الدارك مود</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── شريط التنقل السريع بين نسخ الجداول (Tabs Bar) ── -->
+    <nav class="tables-nav-bar">
+      <div class="tabs-scroll-container" id="tabsContainer">
+        <!-- سيتم توليد التابات بواسطة JavaScript (نسخة 1، نسخة 2، إلخ) -->
+      </div>
+      <div class="tabs-count-badge" id="tabsSummaryBadge">
+        <i class="fa-solid fa-layer-group"></i>
+        <span>5 نسخ نشطة</span>
+      </div>
+    </nav>
+
+    <!-- ── الحاوية الرئيسية للجداول (Main Content) ── -->
+    <main class="main-content">
+      <!-- شريط معلومات وتحكم الجدول النشط -->
+      <div class="table-workspace" id="tableWorkspace">
+        <!-- سيتم رسم كروت الجداول ديناميكياً هنا -->
+      </div>
+
+      <!-- ── لوحة التوسيع والتحكم في النسخ (More / Undo Control Bar) ── -->
+      <section class="scaling-deck">
+        <div class="scaling-card">
+          <div class="scaling-info">
+            <div class="scaling-icon">
+              <i class="fa-solid fa-clone"></i>
+            </div>
+            <div class="scaling-text">
+              <h3 class="scaling-title">إدارة عدد نسخ الجدول</h3>
+              <p class="scaling-desc">
+                يمكنك زيادة عدد النسخ بمقدار 5 نسخ إضافية حتى 15، 20 أو أكثر، مع إمكانية التراجع بسهولة.
+              </p>
+            </div>
+          </div>
+
+          <div class="scaling-controls">
+            <!-- زر التراجع (-5 نسخ) -->
+            <button id="undoBtn" class="scale-btn undo-btn" title="تقليص 5 نسخ والتراجع">
+              <i class="fa-solid fa-arrow-rotate-left"></i>
+              <span>تراجع (-5)</span>
+            </button>
+
+            <!-- عداد النسخ الحالية -->
+            <div class="copies-counter">
+              <span class="counter-label">النسخ الحالية:</span>
+              <span class="counter-number" id="copiesCounterNumber">5</span>
+              <span class="counter-unit">نسخ</span>
+            </div>
+
+            <!-- زر المزيد (+5 نسخ) -->
+            <button id="moreBtn" class="scale-btn more-btn" title="إضافة 5 نسخ جديدة">
+              <i class="fa-solid fa-plus"></i>
+              <span>المزيد (+5 نسخ)</span>
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ── نافذة تأكيد / إشعارات سريعة (Toast Notification) ── -->
+    <div id="toast" class="toast-notification"></div>
+
+    <!-- ── الفوتر (Footer) ── -->
+    <footer class="app-footer">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <img src="images/logo.svg" alt="Table Hub" class="footer-logo" />
+          <span>جدول | Table Hub</span>
+        </div>
+        <p class="footer-copy">
+          تصميم متكامل باللون الأحمر الملكي الفاخر مع دعم الوضعين (الدارك واللايت) والتحكم المتقدم بالجداول
+        </p>
+      </div>
+    </footer>
+
+    <!-- Script -->
+    <script src="script.js"></script>
+  </body>
+</html>
