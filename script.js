@@ -266,14 +266,14 @@ function clearAuthError() {
 }
 
 function getUserDataKey() {
-  return AppState.user && AppState.user.email
-    ? `table_hub_data_${AppState.user.email}`
-    : "table_hub_data";
+  return "table_hub_data";
 }
 
 function loadData() {
-  const key = getUserDataKey();
-  const saved = localStorage.getItem(key);
+  let saved = localStorage.getItem("table_hub_data");
+  if (!saved && AppState.user && AppState.user.email) {
+    saved = localStorage.getItem(`table_hub_data_${AppState.user.email}`);
+  }
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
@@ -286,13 +286,17 @@ function loadData() {
       console.warn("Resetting tables to default", e);
     }
   }
-  AppState.tables = [createInitialTable(1, 1)];
-  AppState.activeTableId = 1;
+  if (!AppState.tables || AppState.tables.length === 0) {
+    AppState.tables = [createInitialTable(1, 1)];
+    AppState.activeTableId = 1;
+  }
 }
 
 function saveData(silent = false) {
-  const key = getUserDataKey();
-  localStorage.setItem(key, JSON.stringify(AppState.tables));
+  localStorage.setItem("table_hub_data", JSON.stringify(AppState.tables));
+  if (AppState.user && AppState.user.email) {
+    localStorage.setItem(`table_hub_data_${AppState.user.email}`, JSON.stringify(AppState.tables));
+  }
   if (!silent) {
     showToast(I18N[AppState.lang].toastSaved, "check");
   }
@@ -473,37 +477,16 @@ function handleGoogleCredentialResponse(response) {
 
 // تهيئة زر جوجل الرسمي ونظام Google Identity Services
 function initGoogleIdentity() {
-  if (window.google && window.google.accounts && window.google.accounts.id) {
+  if (location.protocol.startsWith("http") && window.google && window.google.accounts && window.google.accounts.id) {
     try {
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: handleGoogleCredentialResponse,
         auto_select: false
       });
-
-      const officialBtnEl = document.getElementById("googleOfficialBtn");
-      const fallbackBtn = document.getElementById("googleSignInBtn");
-
-      if (officialBtnEl) {
-        officialBtnEl.innerHTML = "";
-        window.google.accounts.id.renderButton(officialBtnEl, {
-          theme: AppState.theme === "dark" ? "filled_black" : "outline",
-          size: "large",
-          width: 340,
-          text: "continue_with",
-          shape: "rectangular"
-        });
-        officialBtnEl.style.display = "flex";
-        if (fallbackBtn) fallbackBtn.style.display = "none";
-      }
     } catch (e) {
       console.warn("Google Identity init warning:", e);
-      const fallbackBtn = document.getElementById("googleSignInBtn");
-      if (fallbackBtn) fallbackBtn.style.display = "flex";
     }
-  } else {
-    // Retry if Google script is still loading
-    setTimeout(initGoogleIdentity, 600);
   }
 }
 
@@ -511,20 +494,28 @@ function initGoogleIdentity() {
 function openGoogleOAuthModal() {
   closeAuthModal();
 
-  // إذا تم توفير Client ID الحقيقي، يتم تشغيل نافذة جوجل الرسمية مباشرة
-  if (GOOGLE_CLIENT_ID && window.google && window.google.accounts && window.google.accounts.id) {
+  // إذا كان الموقع يعمل عبر سيرفر HTTP/HTTPS، نجرب One Tap بهدوء
+  if (location.protocol.startsWith("http") && GOOGLE_CLIENT_ID && window.google && window.google.accounts && window.google.accounts.id) {
     try {
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: handleGoogleCredentialResponse
       });
-      window.google.accounts.id.prompt();
+      window.google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          showGoogleAccountChooserModal();
+        }
+      });
       return;
     } catch (err) {
       console.warn("Google Identity prompt fallback", err);
     }
   }
 
+  showGoogleAccountChooserModal();
+}
+
+function showGoogleAccountChooserModal() {
   const modal = document.getElementById("googleOAuthModal");
   if (!modal) return;
 
@@ -615,7 +606,7 @@ function completeGoogleLogin(user) {
   };
 
   localStorage.setItem("table_hub_user", JSON.stringify(AppState.user));
-  loadData();
+  saveData(true);
   updateAuthUI();
   closeGoogleOAuthModal();
   renderApp();
@@ -675,7 +666,7 @@ function handleFormAuthSubmit() {
     };
 
     localStorage.setItem("table_hub_user", JSON.stringify(AppState.user));
-    loadData();
+    saveData(true);
     updateAuthUI();
     closeAuthModal();
     renderApp();
@@ -700,7 +691,7 @@ function handleFormAuthSubmit() {
     };
 
     localStorage.setItem("table_hub_user", JSON.stringify(AppState.user));
-    loadData();
+    saveData(true);
     updateAuthUI();
     closeAuthModal();
     renderApp();
@@ -729,7 +720,7 @@ function bindEvents() {
   document.getElementById("dropdownSignOutBtn")?.addEventListener("click", () => {
     AppState.user = null;
     localStorage.removeItem("table_hub_user");
-    loadData();
+    saveData(true);
     updateAuthUI();
     renderApp();
     showToast(I18N[AppState.lang].authSignedOutToast, "check");
