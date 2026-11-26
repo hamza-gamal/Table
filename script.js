@@ -493,25 +493,6 @@ function initGoogleIdentity() {
 // ── Genuine Google OAuth Account Chooser ──
 function openGoogleOAuthModal() {
   closeAuthModal();
-
-  // إذا كان الموقع يعمل عبر سيرفر HTTP/HTTPS، نجرب One Tap بهدوء
-  if (location.protocol.startsWith("http") && GOOGLE_CLIENT_ID && window.google && window.google.accounts && window.google.accounts.id) {
-    try {
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: handleGoogleCredentialResponse
-      });
-      window.google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          showGoogleAccountChooserModal();
-        }
-      });
-      return;
-    } catch (err) {
-      console.warn("Google Identity prompt fallback", err);
-    }
-  }
-
   showGoogleAccountChooserModal();
 }
 
